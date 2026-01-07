@@ -1,0 +1,163 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  # PR validation
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+      - name: Check for merge conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git merge-base --is-ancestor origin/${{ github.base_ref }} HEAD; then
+            echo "No merge conflicts detected"
+          else
+            echo "Please rebase your branch"
+            exit 1
+          fi
+
+      - name: Check file size limits
+        run: |
+          MAX_FILE_SIZE=5000000  # 5MB
+          large_files=$(find . -type f -size +${MAX_FILE_SIZE}c ! -path "*/node_modules/*" ! -path "*/.git/*")
+          if [ -n "$large_files" ]; then
+            echo "The following files exceed the size limit:"
+            echo "$large_files"
+            exit 1
+          fi
+
+  # Code quality checks
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linters
+        run: |
+          npm run lint --workspace=backend
+          npm run lint --workspace=frontend
+
+      - name: Check code formatting
+        run: npm run format --workspace=backend -- --check
+
+      - name: Check for console logs (frontend)
+        run: |
+          if grep -r "console\\.log" frontend/src --exclude-dir=node_modules; then
+            echo "Found console.log statements in frontend code"
+            exit 1
+          fi
+
+      - name: Check for TODO comments
+        run: |
+          todos=$(grep -r "TODO\|FIXME\|XXX" --include=\*.ts --include=\*.tsx --exclude-dir=node_modules . || true)
+          if [ -n "$todos" ]; then
+            echo "Found TODO/FIXME comments:"
+            echo "$todos"
+            # Don't fail, just warn
+          fi
+
+  # Dependency review
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  # Size impact
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build:frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+      - name: Analyze bundle size
+        run: |
+          du -sh frontend/.next/static || true
+          echo "Frontend bundle built successfully"
+
+  # Auto-label
+  auto-label:
+    name: Auto Label
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Label PR based on changed files
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml

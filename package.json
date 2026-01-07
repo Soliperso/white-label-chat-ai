@@ -1,0 +1,27 @@
+{
+  "name": "chatforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChatForge - White-Label AI Chat Widget Platform",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "build": "npm run build --workspaces",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "start:frontend": "npm run start --workspace=frontend",
+    "start:backend": "npm run start:prod --workspace=backend",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "concurrently": "^9.2.1",
+    "puppeteer": "^24.34.0"
+  }
+}

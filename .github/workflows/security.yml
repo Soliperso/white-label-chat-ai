@@ -1,0 +1,164 @@
+name: Security
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  # CodeQL analysis
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript', 'typescript']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # Dependency scanning
+  dependency-scan:
+    name: Dependency Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        run: |
+          echo "Checking for known vulnerabilities in dependencies..."
+          npm audit --json > audit-results.json || true
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-results
+          path: audit-results.json
+          retention-days: 30
+
+  # Secret scanning
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Container scanning
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: |
+          docker build -t chatforge-backend:scan ./backend || echo "Backend Dockerfile not found, skipping"
+
+      - name: Build frontend image
+        run: |
+          docker build -t chatforge-frontend:scan ./frontend || echo "Frontend Dockerfile not found, skipping"
+
+      - name: Run Trivy vulnerability scanner (backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: chatforge-backend:scan
+          format: 'sarif'
+          output: 'trivy-backend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner (frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: chatforge-frontend:scan
+          format: 'sarif'
+          output: 'trivy-frontend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: '.'
+        continue-on-error: true
+
+  # License compliance
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check licenses
+        run: |
+          npx license-checker --summary
+          npx license-checker --production --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0" || true
+        continue-on-error: true

@@ -1,0 +1,206 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Automated code review comments
+  review-code:
+    name: Automated Code Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint with annotations
+        run: |
+          npm run lint --workspace=backend -- --format=json > backend-lint.json || true
+          npm run lint --workspace=frontend -- --format=json > frontend-lint.json || true
+        continue-on-error: true
+
+      - name: Annotate PR with lint results
+        uses: ataylorme/eslint-annotate-action@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          report-json-backend: backend-lint.json
+          report-json-frontend: frontend-lint.json
+        continue-on-error: true
+
+  # Check for common issues
+  check-issues:
+    name: Check Common Issues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Checking for potential hardcoded secrets..."
+          if grep -r -E "(api[_-]?key|password|secret|token|auth)" --include=\*.ts --include=\*.tsx --exclude-dir=node_modules . | grep -v "// OK"; then
+            echo "⚠️ Warning: Found potential hardcoded secrets. Please review."
+          fi
+        continue-on-error: true
+
+      - name: Check for large files
+        run: |
+          echo "Checking for large files..."
+          find . -type f -size +1M ! -path "*/node_modules/*" ! -path "*/.git/*" -exec ls -lh {} \; | awk '{print $9 ": " $5}'
+        continue-on-error: true
+
+      - name: Check for package-lock changes
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "package-lock.json"; then
+            echo "📦 package-lock.json was modified"
+            echo "Make sure you ran 'npm install' and not 'npm update' unless intentional"
+          fi
+        continue-on-error: true
+
+  # Test coverage report
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chatforge_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:cov --workspace=backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: chatforge_test
+
+      - name: Comment PR with coverage
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          lcov-file: ./backend/coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          delete-old-comments: true
+        continue-on-error: true
+
+  # Performance impact check
+  performance-check:
+    name: Performance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies (base)
+        run: npm ci
+
+      - name: Build frontend (base)
+        run: npm run build:frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+      - name: Measure base bundle size
+        run: |
+          du -sh frontend/.next/static > base-size.txt
+          cat base-size.txt
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Install dependencies (PR)
+        run: npm ci
+
+      - name: Build frontend (PR)
+        run: npm run build:frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+      - name: Measure PR bundle size
+        run: |
+          du -sh frontend/.next/static > pr-size.txt
+          cat pr-size.txt
+
+      - name: Compare sizes
+        run: |
+          echo "## Bundle Size Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "Base: $(cat base-size.txt)" >> $GITHUB_STEP_SUMMARY
+          echo "PR: $(cat pr-size.txt)" >> $GITHUB_STEP_SUMMARY
+        continue-on-error: true
+
+  # Complexity analysis
+  complexity-check:
+    name: Code Complexity Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install complexity analyzer
+        run: npm install -g complexity-report
+
+      - name: Analyze complexity
+        run: |
+          echo "Analyzing code complexity..."
+          cr backend/src --format=plain || true
+          cr frontend/src --format=plain || true
+        continue-on-error: true

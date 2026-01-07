@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: read
+
+jobs:
+  # Create GitHub release
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v4.3.1
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## What's Changed
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Docker Images
+            - Backend: `ghcr.io/${{ github.repository }}/backend:v${{ steps.get_version.outputs.version }}`
+            - Frontend: `ghcr.io/${{ github.repository }}/frontend:v${{ steps.get_version.outputs.version }}`
+
+            ## Installation
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}/backend:v${{ steps.get_version.outputs.version }}
+            docker pull ghcr.io/${{ github.repository }}/frontend:v${{ steps.get_version.outputs.version }}
+            ```
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+
+  # Build and test before release
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npm run test --workspace=backend
+          npm run lint --workspace=backend
+          npm run lint --workspace=frontend
+
+      - name: Build applications
+        run: npm run build
+
+  # Build and push release Docker images
+  build-release-images:
+    name: Build Release Images
+    runs-on: ubuntu-latest
+    needs: [create-release, build-and-test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:${{ needs.create-release.outputs.version }}
+            ghcr.io/${{ github.repository }}/backend:latest
+          labels: |
+            org.opencontainers.image.version=${{ needs.create-release.outputs.version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/frontend:${{ needs.create-release.outputs.version }}
+            ghcr.io/${{ github.repository }}/frontend:latest
+          labels: |
+            org.opencontainers.image.version=${{ needs.create-release.outputs.version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+
+  # Notify release
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [create-release, build-release-images]
+    if: always()
+
+    steps:
+      - name: Send notification
+        run: |
+          echo "Release v${{ needs.create-release.outputs.version }} completed!"
+          # Add your notification logic here (Slack, Discord, email, etc.)
+          # Example for Slack:
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"New release v${{ needs.create-release.outputs.version }} is available!"}' \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}

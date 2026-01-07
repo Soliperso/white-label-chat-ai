@@ -1,0 +1,40 @@
+# Auto-labeling configuration for pull requests
+
+backend:
+  - backend/**/*
+
+frontend:
+  - frontend/**/*
+
+documentation:
+  - '**/*.md'
+  - docs/**/*
+
+dependencies:
+  - '**/package.json'
+  - '**/package-lock.json'
+  - '**/yarn.lock'
+  - '**/pnpm-lock.yaml'
+
+ci/cd:
+  - .github/**/*
+  - '**/.dockerignore'
+  - '**/Dockerfile'
+  - docker-compose*.yml
+
+tests:
+  - '**/*.spec.ts'
+  - '**/*.test.ts'
+  - '**/*.spec.tsx'
+  - '**/*.test.tsx'
+  - '**/test/**/*
+  - '**/tests/**/*
+  - '**/__tests__/**/*'
+
+config:
+  - '**/*.config.js'
+  - '**/*.config.ts'
+  - '**/.env.example'
+  - '**/tsconfig.json'
+  - '**/.eslintrc*'
+  - '**/.prettierrc*'

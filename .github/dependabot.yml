@@ -1,0 +1,110 @@
+version: 2
+updates:
+  # Enable version updates for npm (root)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for npm (backend)
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "backend"
+      - "automated"
+    commit-message:
+      prefix: "chore(backend)"
+      include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for npm (frontend)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "automated"
+    commit-message:
+      prefix: "chore(frontend)"
+      include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci/cd"
+      - "automated"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+      - "backend"
+      - "automated"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+      - "frontend"
+      - "automated"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"

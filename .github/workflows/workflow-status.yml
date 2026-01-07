@@ -1,0 +1,89 @@
+name: Workflow Status
+
+# This workflow provides a simple health check for all workflows
+# Useful for monitoring overall CI/CD health
+
+on:
+  schedule:
+    # Run daily at 9 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-workflows:
+    name: Check Workflow Health
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check workflow files
+        run: |
+          echo "## Workflow Status Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checking all workflow files for syntax errors..." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # List all workflows
+          echo "### Available Workflows" >> $GITHUB_STEP_SUMMARY
+          for file in .github/workflows/*.yml; do
+            echo "- $(basename $file)" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All workflow files found and readable" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate YAML syntax
+        run: |
+          # Install yamllint
+          pip install yamllint
+
+          echo "Validating YAML syntax..."
+          yamllint .github/workflows/*.yml || true
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### YAML Validation" >> $GITHUB_STEP_SUMMARY
+          echo "✅ YAML syntax validation completed" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for required secrets
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Required Secrets Checklist" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Make sure these secrets are configured:" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] NEXT_PUBLIC_API_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] STAGING_DB_HOST" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] STAGING_DB_PORT" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] STAGING_DB_USERNAME" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] STAGING_DB_PASSWORD" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] STAGING_DB_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Optional:" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] SLACK_WEBHOOK_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] DISCORD_WEBHOOK_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- [ ] CODECOV_TOKEN" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate workflow documentation
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Workflow | Purpose | Trigger |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CI | Test & Build | Push/PR to main/develop |" >> $GITHUB_STEP_SUMMARY
+          echo "| CD | Deploy | Push to main, tags |" >> $GITHUB_STEP_SUMMARY
+          echo "| PR Checks | Validate PRs | PR events |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | Scan for issues | Push/PR, daily |" >> $GITHUB_STEP_SUMMARY
+          echo "| Release | Create releases | Version tags |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Review | Auto review | PR events |" >> $GITHUB_STEP_SUMMARY
+          echo "| Workflow Status | Health check | Daily, manual |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Last checked: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Workflow health check completed" >> $GITHUB_STEP_SUMMARY

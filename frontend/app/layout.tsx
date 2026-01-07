@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import { MSWProvider } from "@/components/msw-provider";
+import { ReactQueryProvider } from "@/lib/react-query-provider";
+import { Toaster } from "@/components/ui/sonner";
+
+export const metadata: Metadata = {
+  title: "White-Label AI Chat Widget Platform",
+  description: "Build and deploy AI-powered chat widgets for your clients",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className="antialiased">
+        <MSWProvider>
+          <ReactQueryProvider>
+            {children}
+            <Toaster />
+          </ReactQueryProvider>
+        </MSWProvider>
+      </body>
+    </html>
+  );
+}
