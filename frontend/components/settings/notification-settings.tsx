@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Mail, MessageSquare } from 'lucide-react';
+import { Bell, Mail } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -64,8 +64,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="new-conversations"
                 checked={emailNotifications.newConversations}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications({ ...emailNotifications, newConversations: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setEmailNotifications({ ...emailNotifications, newConversations: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -85,8 +85,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="widget-activity"
                 checked={emailNotifications.widgetActivity}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications({ ...emailNotifications, widgetActivity: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setEmailNotifications({ ...emailNotifications, widgetActivity: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -106,8 +106,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="weekly-reports"
                 checked={emailNotifications.weeklyReports}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications({ ...emailNotifications, weeklyReports: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setEmailNotifications({ ...emailNotifications, weeklyReports: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -127,8 +127,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="product-updates"
                 checked={emailNotifications.productUpdates}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications({ ...emailNotifications, productUpdates: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setEmailNotifications({ ...emailNotifications, productUpdates: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -148,8 +148,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="security-alerts"
                 checked={emailNotifications.securityAlerts}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications({ ...emailNotifications, securityAlerts: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setEmailNotifications({ ...emailNotifications, securityAlerts: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -185,8 +185,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="new-messages"
                 checked={inAppNotifications.newMessages}
-                onCheckedChange={(checked) =>
-                  setInAppNotifications({ ...inAppNotifications, newMessages: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setInAppNotifications({ ...inAppNotifications, newMessages: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -206,8 +206,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="mentions"
                 checked={inAppNotifications.mentions}
-                onCheckedChange={(checked) =>
-                  setInAppNotifications({ ...inAppNotifications, mentions: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setInAppNotifications({ ...inAppNotifications, mentions: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
@@ -227,8 +227,8 @@ export function NotificationSettings() {
               <Checkbox
                 id="system-updates"
                 checked={inAppNotifications.systemUpdates}
-                onCheckedChange={(checked) =>
-                  setInAppNotifications({ ...inAppNotifications, systemUpdates: checked as boolean })
+                onCheckedChange={(checked: boolean) =>
+                  setInAppNotifications({ ...inAppNotifications, systemUpdates: checked })
                 }
                 className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />

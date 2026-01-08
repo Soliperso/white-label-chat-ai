@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { MSWProvider } from "@/components/msw-provider";
 import { ReactQueryProvider } from "@/lib/react-query-provider";
+import { AuthProvider } from "@/lib/auth-context";
+import { DevAuthHelper } from "@/components/auth/dev-auth-helper";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
@@ -19,8 +21,11 @@ export default function RootLayout({
       <body className="antialiased">
         <MSWProvider>
           <ReactQueryProvider>
-            {children}
-            <Toaster />
+            <AuthProvider>
+              {children}
+              <Toaster />
+              <DevAuthHelper />
+            </AuthProvider>
           </ReactQueryProvider>
         </MSWProvider>
       </body>
