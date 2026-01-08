@@ -37,25 +37,27 @@ export function NotificationSettings() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card className="p-6">
-        <div className="space-y-4">
+      <Card className="p-6 border border-[#E0E0E0] rounded-lg">
+        <div className="space-y-5">
           <div>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Mail className="h-5 w-5" />
+            <h3 className="text-2xl font-semibold flex items-center gap-2 text-[#212121]">
+              <Mail className="h-6 w-6 text-[#2196F3]" />
               Email Notifications
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-[#757575] mt-1">
               Choose what email notifications you want to receive
             </p>
           </div>
 
-          <Separator />
+          <Separator className="bg-[#E0E0E0]" />
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="new-conversations">New Conversations</Label>
-                <p className="text-sm text-muted-foreground">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="new-conversations" className="text-base font-medium text-[#212121] cursor-pointer">
+                  New Conversations
+                </Label>
+                <p className="text-sm text-[#757575]">
                   Get notified when a new chat conversation starts
                 </p>
               </div>
@@ -65,15 +67,18 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setEmailNotifications({ ...emailNotifications, newConversations: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
 
-            <Separator />
+            <Separator className="bg-[#E0E0E0]" />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="widget-activity">Widget Activity</Label>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="widget-activity" className="text-base font-medium text-[#212121] cursor-pointer">
+                  Widget Activity
+                </Label>
+                <p className="text-sm text-[#757575]">
                   Updates about your widget performance and usage
                 </p>
               </div>
@@ -83,15 +88,18 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setEmailNotifications({ ...emailNotifications, widgetActivity: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
 
-            <Separator />
+            <Separator className="bg-[#E0E0E0]" />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="weekly-reports">Weekly Reports</Label>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="weekly-reports" className="text-base font-medium text-[#212121] cursor-pointer">
+                  Weekly Reports
+                </Label>
+                <p className="text-sm text-[#757575]">
                   Receive weekly analytics and performance summaries
                 </p>
               </div>
@@ -101,15 +109,18 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setEmailNotifications({ ...emailNotifications, weeklyReports: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
 
-            <Separator />
+            <Separator className="bg-[#E0E0E0]" />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="product-updates">Product Updates</Label>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="product-updates" className="text-base font-medium text-[#212121] cursor-pointer">
+                  Product Updates
+                </Label>
+                <p className="text-sm text-[#757575]">
                   News about new features and improvements
                 </p>
               </div>
@@ -119,15 +130,18 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setEmailNotifications({ ...emailNotifications, productUpdates: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
 
-            <Separator />
+            <Separator className="bg-[#E0E0E0]" />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="security-alerts">Security Alerts</Label>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="security-alerts" className="text-base font-medium text-[#212121] cursor-pointer">
+                  Security Alerts
+                </Label>
+                <p className="text-sm text-[#757575]">
                   Important security and account notifications
                 </p>
               </div>
@@ -137,31 +151,34 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setEmailNotifications({ ...emailNotifications, securityAlerts: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
           </div>
         </div>
       </Card>
 
-      <Card className="p-6">
-        <div className="space-y-4">
+      <Card className="p-6 border border-[#E0E0E0] rounded-lg">
+        <div className="space-y-5">
           <div>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Bell className="h-5 w-5" />
+            <h3 className="text-2xl font-semibold flex items-center gap-2 text-[#212121]">
+              <Bell className="h-6 w-6 text-[#2196F3]" />
               In-App Notifications
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-[#757575] mt-1">
               Manage notifications within the dashboard
             </p>
           </div>
 
-          <Separator />
+          <Separator className="bg-[#E0E0E0]" />
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="new-messages">New Messages</Label>
-                <p className="text-sm text-muted-foreground">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="new-messages" className="text-base font-medium text-[#212121] cursor-pointer">
+                  New Messages
+                </Label>
+                <p className="text-sm text-[#757575]">
                   Show notifications for new chat messages
                 </p>
               </div>
@@ -171,15 +188,18 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setInAppNotifications({ ...inAppNotifications, newMessages: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
 
-            <Separator />
+            <Separator className="bg-[#E0E0E0]" />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="mentions">Mentions</Label>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="mentions" className="text-base font-medium text-[#212121] cursor-pointer">
+                  Mentions
+                </Label>
+                <p className="text-sm text-[#757575]">
                   When someone mentions you in a conversation
                 </p>
               </div>
@@ -189,15 +209,18 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setInAppNotifications({ ...inAppNotifications, mentions: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
 
-            <Separator />
+            <Separator className="bg-[#E0E0E0]" />
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="system-updates">System Updates</Label>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between p-4 rounded-lg hover:bg-[#F5F5F5] transition-colors cursor-pointer group">
+              <div className="flex-1 space-y-0.5">
+                <Label htmlFor="system-updates" className="text-base font-medium text-[#212121] cursor-pointer">
+                  System Updates
+                </Label>
+                <p className="text-sm text-[#757575]">
                   Platform maintenance and system notifications
                 </p>
               </div>
@@ -207,6 +230,7 @@ export function NotificationSettings() {
                 onCheckedChange={(checked) =>
                   setInAppNotifications({ ...inAppNotifications, systemUpdates: checked as boolean })
                 }
+                className="h-5 w-5 border-2 border-[#BDBDBD] data-[state=checked]:bg-[#2196F3] data-[state=checked]:border-[#2196F3] transition-colors"
               />
             </div>
           </div>
@@ -214,7 +238,7 @@ export function NotificationSettings() {
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading} className="text-white">
+        <Button type="submit" disabled={isLoading} className="bg-[#2196F3] hover:bg-[#1976D2] text-white">
           {isLoading ? 'Saving...' : 'Save Preferences'}
         </Button>
       </div>

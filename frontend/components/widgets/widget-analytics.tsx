@@ -152,14 +152,12 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
                     <span className="text-muted-foreground">{data.date}</span>
                     <span className="font-medium">{data.conversations}</span>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-all"
-                      style={{
-                        width: `${(data.conversations / maxConversations) * 100}%`,
-                      }}
-                    />
-                  </div>
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(data.conversations / maxConversations) * 100}%`,
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -180,14 +178,12 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
                     <span className="text-muted-foreground">{data.date}</span>
                     <span className="font-medium">{data.messages}</span>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-blue-500 h-full rounded-full transition-all"
-                      style={{
-                        width: `${(data.messages / maxMessages) * 100}%`,
-                      }}
-                    />
-                  </div>
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(data.messages / maxMessages) * 100}%`,
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -239,36 +235,30 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
                   <span className="text-muted-foreground">High Confidence</span>
                   <span className="font-medium">72%</span>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-green-500 h-full rounded-full"
-                    style={{ width: "72%" }}
-                  />
-                </div>
+                <div
+                  className="bg-green-500 h-2 rounded-full"
+                  style={{ width: "72%" }}
+                />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Medium Confidence</span>
                   <span className="font-medium">21%</span>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-yellow-500 h-full rounded-full"
-                    style={{ width: "21%" }}
-                  />
-                </div>
+                <div
+                  className="bg-yellow-500 h-2 rounded-full"
+                  style={{ width: "21%" }}
+                />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Low Confidence</span>
                   <span className="font-medium">7%</span>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-red-500 h-full rounded-full"
-                    style={{ width: "7%" }}
-                  />
-                </div>
+                <div
+                  className="bg-red-500 h-2 rounded-full"
+                  style={{ width: "7%" }}
+                />
               </div>
             </div>
           </CardContent>
@@ -294,12 +284,10 @@ export function WidgetAnalytics({ widgetId }: WidgetAnalyticsProps) {
                     <span className="text-muted-foreground">{item.time}</span>
                     <span className="font-medium">{item.usage}%</span>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-purple-500 h-full rounded-full"
-                      style={{ width: `${item.usage}%` }}
-                    />
-                  </div>
+                  <div
+                    className="bg-purple-500 h-2 rounded-full"
+                    style={{ width: `${item.usage}%` }}
+                  />
                 </div>
               ))}
             </div>

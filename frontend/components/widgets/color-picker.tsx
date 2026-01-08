@@ -66,7 +66,7 @@ export function ColorPicker({ value, onChange, label, error }: ColorPickerProps)
           <button
             type="button"
             onClick={handleSwatchClick}
-            className="absolute right-1 top-1 h-8 w-8 rounded border border-input shadow-sm hover:opacity-80 transition-opacity"
+            className="absolute right-[0.3125rem] top-1/2 -translate-y-1/2 h-7 w-7 rounded border border-input shadow-sm hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
             style={{ backgroundColor: /^#[0-9A-F]{6}$/i.test(localValue) ? localValue : "#000000" }}
             aria-label="Pick color"
           />

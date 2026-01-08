@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -197,6 +198,9 @@ export function WidgetForm({
                     disabled={isSubmitting}
                   />
                 </FormControl>
+                <FormDescription>
+                  A friendly name to identify this widget in your dashboard
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -217,42 +221,55 @@ export function WidgetForm({
                     disabled={isSubmitting}
                   />
                 </FormControl>
+                <FormDescription>
+                  The first message users see when they open the chat widget
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
 
           {/* Color Pickers - Two Column Layout */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="primaryColor"
-              render={({ field }) => (
-                <FormItem>
-                  <ColorPicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    label="Primary Color"
-                    error={form.formState.errors.primaryColor?.message}
-                  />
-                </FormItem>
-              )}
-            />
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-sm font-medium leading-none mb-1">Widget Colors</h4>
+              <p className="text-sm text-muted-foreground">
+                Customize the appearance to match your brand
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="primaryColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorPicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Primary Color"
+                      error={form.formState.errors.primaryColor?.message}
+                    />
+                    <FormDescription>Header and main elements</FormDescription>
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="secondaryColor"
-              render={({ field }) => (
-                <FormItem>
-                  <ColorPicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    label="Secondary Color"
-                    error={form.formState.errors.secondaryColor?.message}
-                  />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="secondaryColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorPicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Secondary Color"
+                      error={form.formState.errors.secondaryColor?.message}
+                    />
+                    <FormDescription>Accents and highlights</FormDescription>
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
 
           {/* Theme Mode Field */}
@@ -278,6 +295,9 @@ export function WidgetForm({
                     <SelectItem value="auto">Auto</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  Auto mode adapts to user&apos;s system preferences
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -306,6 +326,9 @@ export function WidgetForm({
                     <SelectItem value="inline">Inline</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  Where the widget appears on your website
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
