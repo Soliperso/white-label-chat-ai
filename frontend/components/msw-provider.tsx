@@ -1,40 +1,59 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initMSW } from '@/lib/msw-init';
 
 export function MSWProvider({ children }: { children: React.ReactNode }) {
   const [mswReady, setMswReady] = useState(false);
 
   useEffect(() => {
-    // Only run on client side in development
-    if (process.env.NODE_ENV !== 'development') {
+    // In production, skip MSW entirely
+    if (typeof window === 'undefined' || process.env.NODE_ENV !== 'development') {
       setMswReady(true);
       return;
     }
 
-    async function init() {
+    // Set up a safety timeout first
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[MSW] Safety timeout reached - continuing without MSW');
+      setMswReady(true);
+    }, 2000);
+
+    // Dynamically import and start MSW
+    async function initMocks() {
       try {
-        await initMSW();
+        const { worker } = await import('@/mocks/browser');
+
+        await Promise.race([
+          worker.start({
+            onUnhandledRequest: 'bypass',
+            quiet: false,
+          }),
+          new Promise((resolve) => setTimeout(resolve, 1500))
+        ]);
+
+        clearTimeout(safetyTimeout);
         setMswReady(true);
-        console.log('[MSW] Provider: MSW is now ready');
+        console.log('[MSW] Mock service worker started successfully');
       } catch (error) {
-        console.error('[MSW] Initialization failed:', error);
-        // Set ready anyway to not block the app
-        setMswReady(true);
+        console.error('[MSW] Failed to start:', error);
+        clearTimeout(safetyTimeout);
+        setMswReady(true); // Continue anyway
       }
     }
 
-    init();
+    initMocks();
+
+    return () => {
+      clearTimeout(safetyTimeout);
+    };
   }, []);
 
-  // Wait for MSW to be ready in development before rendering
   if (!mswReady) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-sm">Initializing mock service...</p>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );

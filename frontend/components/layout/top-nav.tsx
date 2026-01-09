@@ -2,7 +2,7 @@
 
 import { Bell, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 export function TopNav() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   const handleLogout = () => {
     logout();
@@ -67,8 +68,11 @@ export function TopNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity outline-none" aria-label="User menu">
-              <Avatar className="h-8 w-8 bg-gray-900 text-white">
-                <AvatarFallback className="bg-gray-900 text-white font-semibold">
+              <Avatar className="h-8 w-8">
+                {user?.profilePictureUrl && (
+                  <AvatarImage src={`${apiBaseUrl}${user.profilePictureUrl}`} alt={getUserDisplayName()} />
+                )}
+                <AvatarFallback className="bg-cyan-500 text-white font-semibold">
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>

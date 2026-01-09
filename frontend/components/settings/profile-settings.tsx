@@ -1,22 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { User, Lock, Shield } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { User, Lock, Shield, Upload, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
+import { uploadProfilePicture, deleteProfilePicture } from '@/lib/api-client';
 
 export function ProfileSettings() {
+  const { user, updateUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(
+    user?.profilePictureUrl ? `${apiBaseUrl}${user.profilePictureUrl}` : null
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [profileData, setProfileData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@acme-agency.com',
-    role: 'Admin',
+    firstName: user?.firstName || 'John',
+    lastName: user?.lastName || 'Doe',
+    email: user?.email || 'john.doe@acme-agency.com',
+    role: user?.role || 'viewer',
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -56,8 +67,137 @@ export function ProfileSettings() {
     setIsChangingPassword(false);
   };
 
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPicture(true);
+
+    try {
+      const updatedUser = await uploadProfilePicture(user.id, file);
+
+      if (updatedUser.profilePictureUrl) {
+        setProfilePicturePreview(`${apiBaseUrl}${updatedUser.profilePictureUrl}`);
+      }
+
+      updateUser(updatedUser);
+      toast.success('Profile picture updated successfully');
+    } catch (error) {
+      toast.error('Failed to upload profile picture');
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    if (!user) return;
+
+    setIsUploadingPicture(true);
+
+    try {
+      const updatedUser = await deleteProfilePicture(user.id);
+      setProfilePicturePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      updateUser(updatedUser);
+      toast.success('Profile picture removed');
+    } catch (error) {
+      toast.error('Failed to remove profile picture');
+      console.error('Remove error:', error);
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
+
+  const getInitials = () => {
+    if (!user) return 'U';
+    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+  };
+
   return (
     <div className="space-y-6">
+      <Card className="p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900">
+              <div className="p-2 bg-cyan-100 rounded-lg">
+                <User className="h-5 w-5 text-cyan-700" />
+              </div>
+              Profile Picture
+            </h3>
+            <p className="text-sm text-gray-600 mt-2 font-medium">
+              Upload a profile picture to personalize your account
+            </p>
+          </div>
+
+          <Separator className="bg-gray-200" />
+
+          <div className="flex items-center gap-6">
+            <Avatar className="h-24 w-24 border-4 border-gray-200 shadow-lg">
+              {profilePicturePreview ? (
+                <AvatarImage src={profilePicturePreview} alt="Profile picture" />
+              ) : (
+                <AvatarFallback className="bg-cyan-500 text-white text-2xl font-bold">
+                  {getInitials()}
+                </AvatarFallback>
+              )}
+            </Avatar>
+
+            <div className="flex-1 space-y-3">
+              <div className="flex gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  onClick={handleProfilePictureClick}
+                  disabled={isUploadingPicture}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploadingPicture ? 'Uploading...' : 'Upload Photo'}
+                </Button>
+                {profilePicturePreview && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRemoveProfilePicture}
+                    disabled={isUploadingPicture}
+                    className="font-semibold border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-all duration-200"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 font-medium">
+                Recommended: Square image, at least 200x200px. Max 5MB. Supports JPG, PNG, GIF, WebP.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 rounded-xl">
         <div className="space-y-4">
           <div>
@@ -85,7 +225,7 @@ export function ProfileSettings() {
                   value={profileData.firstName}
                   onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
                   placeholder="John"
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                  className="border-gray-300 focus:border-cyan-500 focus:ring-cyan-500 transition-colors"
                 />
               </div>
 
@@ -98,7 +238,7 @@ export function ProfileSettings() {
                   value={profileData.lastName}
                   onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
                   placeholder="Doe"
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                  className="border-gray-300 focus:border-cyan-500 focus:ring-cyan-500 transition-colors"
                 />
               </div>
 
@@ -112,7 +252,7 @@ export function ProfileSettings() {
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                   placeholder="john.doe@example.com"
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                  className="border-gray-300 focus:border-cyan-500 focus:ring-cyan-500 transition-colors"
                 />
               </div>
 
@@ -133,7 +273,7 @@ export function ProfileSettings() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               >
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -208,7 +348,7 @@ export function ProfileSettings() {
               <Button
                 type="submit"
                 disabled={isChangingPassword}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
               >
                 {isChangingPassword ? 'Changing...' : 'Change Password'}
               </Button>
@@ -234,7 +374,7 @@ export function ProfileSettings() {
           <Separator className="bg-gray-200" />
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+            <div className="flex items-center justify-between bg-cyan-50 p-4 rounded-lg border border-cyan-100">
               <div>
                 <p className="font-semibold text-gray-900">Two-Factor Authentication</p>
                 <p className="text-sm text-gray-600 mt-0.5">
@@ -244,7 +384,7 @@ export function ProfileSettings() {
               <Button
                 variant="outline"
                 onClick={() => toast.info('2FA setup coming soon')}
-                className="font-semibold border-gray-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-all duration-200 shadow-sm"
+                className="font-semibold border-gray-300 hover:bg-cyan-50 hover:text-cyan-700 hover:border-cyan-300 transition-all duration-200 shadow-sm"
               >
                 Enable 2FA
               </Button>

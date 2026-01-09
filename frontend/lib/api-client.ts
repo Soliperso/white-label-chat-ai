@@ -8,6 +8,7 @@ import type {
   TrainingJob,
   AddTrainingSourceDto,
 } from '@/types';
+import type { User } from './auth-context';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -178,4 +179,23 @@ export async function fetchTrainingStatus(widgetId: string): Promise<TrainingJob
   const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/training/status`);
   const data = await handleResponse<{ job: TrainingJob | null }>(response);
   return data.job;
+}
+
+// User profile API functions
+export async function uploadProfilePicture(userId: string, file: File): Promise<User> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/profile-picture`, {
+    method: 'POST',
+    body: formData,
+  });
+  return handleResponse<User>(response);
+}
+
+export async function deleteProfilePicture(userId: string): Promise<User> {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/profile-picture`, {
+    method: 'DELETE',
+  });
+  return handleResponse<User>(response);
 }

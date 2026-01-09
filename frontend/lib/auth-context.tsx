@@ -10,6 +10,7 @@ export interface User {
   lastName: string;
   role: 'admin' | 'manager' | 'viewer';
   organizationId: string;
+  profilePictureUrl?: string;
 }
 
 interface AuthContextType {

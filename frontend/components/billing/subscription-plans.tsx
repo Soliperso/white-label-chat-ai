@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { useUpgradeSubscription } from '@/hooks/use-billing';
 
 interface PlanFeature {
   text: string;
@@ -82,6 +84,25 @@ interface SubscriptionPlansProps {
 }
 
 export function SubscriptionPlans({ currentPlan = 'starter' }: SubscriptionPlansProps) {
+  const upgradeMutation = useUpgradeSubscription();
+
+  const handlePlanSelect = (planId: string, planName: string) => {
+    if (planId === 'enterprise') {
+      toast.info('Contact sales for Enterprise plan');
+      // In production: window.location.href = 'mailto:sales@chatforge.com';
+      return;
+    }
+
+    toast.promise(
+      upgradeMutation.mutateAsync(planId),
+      {
+        loading: `Upgrading to ${planName} plan...`,
+        success: `Successfully upgraded to ${planName} plan!`,
+        error: 'Failed to upgrade plan. Please try again.',
+      }
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {plans.map((plan) => {
@@ -153,7 +174,8 @@ export function SubscriptionPlans({ currentPlan = 'starter' }: SubscriptionPlans
             <Button
               variant={plan.popular ? 'default' : 'outline'}
               className={plan.popular ? 'w-full text-white' : 'w-full'}
-              disabled={isCurrentPlan}
+              disabled={isCurrentPlan || upgradeMutation.isPending}
+              onClick={() => handlePlanSelect(plan.id, plan.name)}
             >
               {isCurrentPlan ? 'Current Plan' : plan.cta}
             </Button>

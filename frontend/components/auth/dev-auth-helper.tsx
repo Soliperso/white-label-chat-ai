@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,7 +43,10 @@ export function DevAuthHelper() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <Card className="w-80 shadow-lg border-2 border-yellow-400">
+      <Card
+        className="w-80 shadow-lg border-2 border-yellow-400"
+        style={{ backgroundColor: 'rgb(255, 255, 255)' }}
+      >
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Dev Auth Helper</CardTitle>
           <CardDescription className="text-xs">

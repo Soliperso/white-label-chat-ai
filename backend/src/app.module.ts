@@ -6,6 +6,8 @@ import { AppService } from './app.service';
 import { TrainingModule } from './training/training.module';
 import { TrainingSource } from './training/entities/training-source.entity';
 import { TrainingJob } from './training/entities/training-job.entity';
+import { UsersModule } from './users/users.module';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
@@ -20,11 +22,12 @@ import { TrainingJob } from './training/entities/training-job.entity';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'chatforge',
-      entities: [TrainingSource, TrainingJob],
+      entities: [TrainingSource, TrainingJob, User],
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
     TrainingModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

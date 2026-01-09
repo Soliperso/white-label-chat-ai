@@ -5,13 +5,15 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 import type { Subscription } from '@/types';
 
 interface CurrentPlanCardProps {
   subscription?: Subscription;
+  onUpgradePlan?: () => void;
 }
 
-export function CurrentPlanCard({ subscription }: CurrentPlanCardProps) {
+export function CurrentPlanCard({ subscription, onUpgradePlan }: CurrentPlanCardProps) {
   if (!subscription) {
     return null;
   }
@@ -20,6 +22,37 @@ export function CurrentPlanCard({ subscription }: CurrentPlanCardProps) {
   const daysUntilRenewal = Math.ceil(
     (new Date(subscription.currentPeriodEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
   );
+
+  const handleUpgradePlan = () => {
+    if (onUpgradePlan) {
+      onUpgradePlan();
+    } else {
+      // Scroll to plans section
+      const plansTab = document.querySelector('[value="plans"]');
+      if (plansTab) {
+        (plansTab as HTMLElement).click();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleManageBilling = () => {
+    toast.info('Redirecting to billing portal...');
+    // In production, this would redirect to Stripe Customer Portal
+    // window.location.href = '/api/billing/portal';
+    setTimeout(() => {
+      toast.success('This will open the Stripe Customer Portal in production');
+    }, 500);
+  };
+
+  const handleUpdatePaymentMethod = () => {
+    toast.info('Redirecting to payment update...');
+    // In production, this would redirect to Stripe payment method update
+    // window.location.href = '/api/billing/update-payment-method';
+    setTimeout(() => {
+      toast.success('This will open the payment method update form in production');
+    }, 500);
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-[1fr_340px]">
@@ -89,11 +122,11 @@ export function CurrentPlanCard({ subscription }: CurrentPlanCardProps) {
 
           {/* Action Buttons */}
           <div className="flex gap-3 mt-8">
-            <Button size="lg" className="gap-2 text-white">
+            <Button size="lg" className="gap-2 text-white" onClick={handleUpgradePlan}>
               <TrendingUp className="h-4 w-4 text-white" />
               Upgrade Plan
             </Button>
-            <Button size="lg" variant="outline">
+            <Button size="lg" variant="outline" onClick={handleManageBilling}>
               Manage Billing
             </Button>
           </div>
@@ -142,7 +175,10 @@ export function CurrentPlanCard({ subscription }: CurrentPlanCardProps) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">Payment Method</p>
               <p className="text-lg font-semibold mt-1">•••• {subscription.paymentMethod.last4}</p>
-              <button className="text-xs text-primary hover:underline mt-1 flex items-center gap-1">
+              <button
+                onClick={handleUpdatePaymentMethod}
+                className="text-xs text-primary hover:underline mt-1 flex items-center gap-1 cursor-pointer"
+              >
                 Update payment method
                 <ArrowUpRight className="h-3 w-3" />
               </button>
