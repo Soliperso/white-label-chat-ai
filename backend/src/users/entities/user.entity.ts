@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { Organization } from '../../organizations/entities/organization.entity';
 
 @Entity('users')
 export class User {
@@ -35,15 +36,37 @@ export class User {
   @Column({ nullable: true })
   profilePictureUrl: string;
 
-  @Column()
+  // Foreign key relationship with Organization
+  @ManyToOne(() => Organization, (org) => org.users, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'organizationId' })
+  organization: Organization;
+
+  @Column('uuid')
   organizationId: string;
+
+  // Email verification fields
+  @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  emailVerificationToken: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  emailVerificationTokenExpires: Date | null;
+
+  // Password reset fields
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetToken: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  passwordResetTokenExpires: Date | null;
+
+  @Column({ default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @Column({ default: true })
-  isActive: boolean;
 }

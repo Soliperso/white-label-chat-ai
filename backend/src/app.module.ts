@@ -8,6 +8,10 @@ import { TrainingSource } from './training/entities/training-source.entity';
 import { TrainingJob } from './training/entities/training-job.entity';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
+import { AuthModule } from './auth/auth.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { Organization } from './organizations/entities/organization.entity';
+import { RefreshToken } from './auth/entities/refresh-token.entity';
 
 @Module({
   imports: [
@@ -22,12 +26,14 @@ import { User } from './users/entities/user.entity';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'chatforge',
-      entities: [TrainingSource, TrainingJob, User],
+      entities: [TrainingSource, TrainingJob, User, Organization, RefreshToken],
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
     TrainingModule,
     UsersModule,
+    AuthModule,
+    OrganizationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
