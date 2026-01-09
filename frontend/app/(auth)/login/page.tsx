@@ -138,7 +138,7 @@ export default function LoginPage() {
                 <CardFooter className="flex flex-col space-y-4 pb-6">
                   <Button
                     type="submit"
-                    className="w-full h-11"
+                    className="w-full h-11 text-white"
                     disabled={form.formState.isSubmitting}
                   >
                     {form.formState.isSubmitting ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Building2, Upload, Trash2, X, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,14 @@ export function OrganizationSettings() {
     email: 'contact@acme-agency.com',
     phone: '+1 (555) 123-4567',
   });
+
+  // Load existing logo from localStorage on mount
+  useEffect(() => {
+    const storedLogo = localStorage.getItem('organizationLogo');
+    if (storedLogo) {
+      setLogoPreview(storedLogo);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +79,12 @@ export function OrganizationSettings() {
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setLogoPreview(reader.result as string);
+      const logoData = reader.result as string;
+      setLogoPreview(logoData);
+      // Store in localStorage so sidebar can access it
+      localStorage.setItem('organizationLogo', logoData);
+      // Dispatch custom event to update sidebar immediately
+      window.dispatchEvent(new Event('logoUpdated'));
       toast.success('Logo uploaded successfully');
     };
     reader.readAsDataURL(file);
@@ -83,6 +96,10 @@ export function OrganizationSettings() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    // Remove from localStorage
+    localStorage.removeItem('organizationLogo');
+    // Dispatch custom event to update sidebar immediately
+    window.dispatchEvent(new Event('logoUpdated'));
     toast.success('Logo removed');
   };
 
