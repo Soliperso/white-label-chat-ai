@@ -116,9 +116,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check for existing session on mount
   useEffect(() => {
+    let isMounted = true; // Prevent state updates after unmount
+
     const checkAuth = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (!isMounted) return; // Component unmounted, abort
 
         if (sessionError) {
           console.error('[Auth] Session error:', sessionError);
@@ -132,6 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           console.log('[Auth] Session found, fetching profile for:', session.user.id);
           const userProfile = await fetchUserProfile(session.user);
+          if (!isMounted) return; // Component unmounted during fetch
+
           if (userProfile) {
             setUser(userProfile);
           } else {
@@ -143,12 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[Auth] No session found');
         }
       } catch (error) {
+        if (!isMounted) return; // Component unmounted during error
         console.error('[Auth] Auth check failed:', error);
         // Clear session on any error
         await supabase.auth.signOut();
         setUser(null);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -156,9 +165,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return; // Component unmounted
+
       console.log('[Auth] Auth state changed:', event);
       if (session?.user) {
         const userProfile = await fetchUserProfile(session.user);
+        if (!isMounted) return; // Component unmounted during fetch
+
         if (userProfile) {
           setUser(userProfile);
         } else {
@@ -173,9 +186,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      isMounted = false; // Mark as unmounted
       subscription.unsubscribe();
     };
-  }, [supabase, fetchUserProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]); // Only depend on supabase, not fetchUserProfile
 
   const login = async (email: string, password: string) => {
     try {
