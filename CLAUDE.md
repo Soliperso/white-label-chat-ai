@@ -243,6 +243,303 @@ Global ValidationPipe automatically validates all DTOs.
 6. Chat widget frontend (standalone JS bundle)
 7. Basic analytics and lead capture
 
+## Hash Commands (Reusable Patterns)
+
+Hash commands are shortcuts you can use when instructing Claude Code. They enforce consistent patterns across the codebase.
+
+### #strict-ts
+- Always use TypeScript strict mode
+- Add JSDoc comments to all exported functions
+- Prefer composition over inheritance
+- Use explicit return types on functions
+- No `any` types - use proper typing or `unknown`
+
+### #supabase-auth
+For Supabase authentication integration:
+- Frontend: Use `createClient()` from `@/lib/supabase/client`
+- Backend: Protect routes with `SupabaseJwtGuard` (applied globally)
+- Public endpoints: Use `@Public()` decorator to bypass auth
+- Access user: `@CurrentUser()` decorator in controllers
+- Check roles: Use `@Roles()` decorator with `RolesGuard`
+- Available roles: `admin`, `manager`, `viewer`
+- Token in headers: `Authorization: Bearer <supabase-jwt>`
+
+### #api-endpoint
+When creating NestJS API endpoints:
+- Use proper HTTP method decorators (`@Get()`, `@Post()`, `@Put()`, `@Delete()`)
+- Apply validation with DTOs and `class-validator`
+- Return consistent response format (data, message, statusCode)
+- Add `@ApiTags()` and `@ApiOperation()` for Swagger docs
+- Use proper HTTP status codes via `@HttpCode()`
+- Protected by default (SupabaseJwtGuard) - use `@Public()` to disable
+- Apply `@Roles()` for RBAC when needed
+
+### #dto
+When creating DTOs (Data Transfer Objects):
+- Use `class-validator` decorators (`@IsString()`, `@IsEmail()`, `@IsOptional()`, etc.)
+- Separate Create/Update/Response DTOs
+- Use `PartialType()` for update DTOs
+- Add `@ApiProperty()` decorators for Swagger
+- Place in feature's `dto/` directory
+- Export from `index.ts` for clean imports
+
+### #entity
+When creating TypeORM entities:
+- Extend base entity with common fields (id, createdAt, updatedAt)
+- Use `@Entity()` decorator with explicit table name
+- Add `organizationId` FK for multi-tenant tables
+- Use UUID for primary keys (`@PrimaryGeneratedColumn('uuid')`)
+- Use proper column types (`@Column()`, `@CreateDateColumn()`, `@UpdateDateColumn()`)
+- Define relationships with `@ManyToOne()`, `@OneToMany()`, etc.
+- Register in `app.module.ts` TypeORM entities array
+- Consider soft deletes with `@DeleteDateColumn()` for GDPR compliance
+
+### #multi-tenant
+For multi-tenant data isolation:
+- **CRITICAL**: Always filter queries by `organizationId` from `@CurrentUser()`
+- Validate user has access to requested organization
+- Use scoped repositories or query builders
+- Never expose cross-tenant data
+- Example: `where: { organizationId: user.organizationId }`
+- For admin operations, verify role before cross-org access
+- Add database-level RLS policies in Supabase for extra security
+
+### #protected-route
+For Next.js protected routes (with Supabase):
+- Use middleware to check auth state (`middleware.ts`)
+- Redirect to `/login` if unauthenticated
+- Fetch user session with `createClient().auth.getSession()`
+- Pass user context to client components via props
+- Use `'use client'` only when needed for interactivity
+- Validate permissions/roles for RBAC
+- Protected routes: `/widgets`, `/settings`, `/training`, etc.
+- Public routes: `/`, `/login`, `/register`, `/forgot-password`
+
+### #client-component
+For Next.js client components:
+- Add `'use client'` directive at top of file
+- Use React hooks (useState, useEffect, useContext)
+- Keep client components small and focused
+- Prefer server components when no interactivity needed
+- Import from `@/` alias for absolute paths
+- Use `useAuth()` context for user state (if available)
+- Make API calls with `Authorization` header
+
+### #server-component
+For Next.js server components (default):
+- NO `'use client'` directive
+- Async functions allowed for data fetching
+- Direct backend API calls with fetch
+- No React hooks (useState, useEffect, etc.)
+- Pass data to client components via props
+- Use `cookies()` to access Supabase session on server
+
+### #service
+For NestJS services:
+- Use `@Injectable()` decorator
+- Implement business logic (not in controllers)
+- Use dependency injection for repositories
+- Handle errors with proper exceptions
+- Return typed responses
+- Add unit tests in `.spec.ts` file
+- Accept `user` parameter for multi-tenant filtering
+- Never trust client input - always validate
+
+### #error-handling
+For consistent error handling:
+- Use NestJS built-in exceptions (`NotFoundException`, `BadRequestException`, `UnauthorizedException`, `ForbiddenException`)
+- Provide clear, user-friendly error messages
+- Log errors with context using NestJS Logger
+- Return proper HTTP status codes
+- Don't expose sensitive info (stack traces, DB errors) to clients
+- Handle Supabase errors gracefully
+- Use try-catch for external API calls
+
+### #validation
+For input validation:
+- Use DTOs with `class-validator` decorators
+- Global ValidationPipe enabled in `main.ts` with `whitelist: true` and `transform: true`
+- Use `@IsOptional()` for optional fields
+- Custom validators when needed (e.g., `@IsHexColor()` for widget colors)
+- Validate at API boundary, trust internal calls
+- Sanitize user input to prevent XSS
+
+### #guard
+For NestJS guards (auth/permissions):
+- `SupabaseJwtGuard`: Validates Supabase JWT tokens (global)
+- `RolesGuard`: Enforces role-based access control
+- `@Public()`: Bypass authentication (for public endpoints)
+- `@Roles('admin', 'manager')`: Require specific roles
+- Guards extract user from JWT and attach to `request.user`
+- Guards run before route handlers
+- Return boolean or throw exceptions
+
+### #widget-config
+For widget configuration:
+- Store branding settings (logo, colors, fonts) in widgets table
+- Validate hex colors with `@IsHexColor()`
+- Support white-label mode (hide ChatForge branding)
+- Generate embed code snippet
+- Use widget ID for iframe/script tag
+- Example: `<script src="https://chatforge.com/widget/{widgetId}.js"></script>`
+
+### #rag-pipeline
+For RAG (Retrieval-Augmented Generation):
+- **Data sources**: URLs, PDF/DOCX uploads, manual Q&A pairs
+- **Pipeline**: Document → Chunking → Embeddings → Vector DB → Retrieval + LLM
+- **Vector DB**: TBD (Pinecone, Qdrant, or Weaviate)
+- **LLM provider**: Abstract for swappable providers (OpenAI, Anthropic)
+- **Confidence scoring**: Track confidence and use fallback responses
+- Store training sources in `training_sources` table with `organizationId`
+
+### #test
+For testing:
+- Unit tests: `.spec.ts` files alongside source
+- E2E tests: `test/` directory in backend
+- Mock Supabase client in tests
+- Mock external dependencies (Vector DB, LLM APIs)
+- Test happy path and error cases
+- Use descriptive test names (`should return user profile when authenticated`)
+- Aim for >80% coverage on business logic
+- Test multi-tenant isolation
+
+### #migration
+For database migrations (Supabase):
+- Create SQL files in `supabase/migrations/` directory
+- Use timestamp naming: `YYYYMMDDHHMMSS_description.sql`
+- Include RLS policies for security
+- Test migrations locally before production
+- Use `npm run fix:auth` scripts for applying migrations programmatically
+- Document breaking changes
+- Always enable RLS on new tables
+
+### #skills
+Skill usage rules for quality assurance:
+- **After any meaningful code change, always use:**
+  - `tester` skill to design and run tests
+  - `code-reviewer` skill to review the diff before finalizing
+- **For UI or UX changes, use:**
+  - `ux-consistency` skill to check alignment with existing patterns
+- **Proactive usage:**
+  - Use these skills automatically, don't wait for explicit requests
+  - Skills should be invoked before claiming a task is complete
+  - Skills help catch issues early and ensure quality
+
+### #parallel-dev
+Use multiple specialized agents in parallel to maximize development speed:
+
+- **When to use parallel agents:**
+  - Frontend + Backend features that are independent
+  - Multiple API endpoints in different modules
+  - Multiple database entities/migrations
+  - Independent bug fixes across different files
+  - Simultaneous documentation and code changes
+  - Creating multiple similar components/pages
+
+- **Available agent types:**
+  - `general-purpose` - Complex multi-step tasks, code searches, research
+  - `Bash` - Command execution, git operations, running tests
+  - `Explore` - Fast codebase exploration, pattern finding
+  - `Plan` - Implementation planning and architecture design
+
+- **Best practices:**
+  - Launch all agents in a **single message** for true parallelization
+  - Ensure tasks are truly independent (no file conflicts)
+  - Each agent should have clear, isolated scope
+  - Avoid parallel edits to the same file
+  - Combine/review results after all agents complete
+
+- **Example parallel workflows:**
+  - **Feature development:**
+    - Agent 1: Backend (entity + DTO + service + controller)
+    - Agent 2: Frontend (page + components + forms)
+    - Agent 3: Database migration + RLS policies
+    - Agent 4: Unit tests for backend
+
+  - **Multi-module CRUD:**
+    - Agent 1: Widget management endpoints
+    - Agent 2: Training sources endpoints
+    - Agent 3: Analytics endpoints
+    - Agent 4: Organization management endpoints
+
+  - **Bug fixes:**
+    - Agent 1: Fix auth issue in backend
+    - Agent 2: Fix form validation in frontend
+    - Agent 3: Fix migration script
+
+  - **Documentation + Implementation:**
+    - Agent 1: Implement feature
+    - Agent 2: Write API documentation
+    - Agent 3: Update user guide
+
+- **How to request:**
+  - Simply say "in parallel" or "using parallel agents"
+  - List the independent tasks to be done
+  - Reference other hash commands for each task
+  - Example: "Build widget CRUD in parallel using #api-endpoint, #entity, #dto, #protected-route"
+
+## Reliability and Honesty Rules
+
+**Never claim a task is complete until:**
+- All changed code has been type-checked or compiled if applicable
+- All relevant tests have been run or clearly described as missing
+- The diff has been carefully reviewed for logic and edge cases
+
+**Always explicitly describe:**
+- What was tested
+- How it was tested
+- The results of testing
+
+**When tests are missing or not runnable:**
+- Clearly state this fact
+- Propose how to add or run them
+- Don't claim completion without testing
+
+**Treat uncertainty as a blocker:**
+- Ask clarifying questions instead of assuming
+- Don't guess at requirements or implementation details
+- Seek user input when multiple valid approaches exist
+
+**Do not state or imply success if:**
+- There are known TODOs or unfinished work
+- Steps were skipped or simplified
+- Assumptions remain unverified
+- Tests haven't been run
+- Code hasn't been compiled/type-checked
+
+## Consistency Rules
+
+**Follow existing patterns for:**
+- Naming conventions (variables, functions, components, files)
+- Folder structure and file organization
+- Component architecture and composition patterns
+
+**Match the current design system:**
+- Colors (use Tailwind theme variables, not hardcoded values)
+- Typography (font sizes, weights, line heights)
+- Spacing (consistent use of Tailwind spacing scale)
+- Component variants (button styles, form inputs, cards)
+
+**Reuse before creating:**
+- Check for existing components and utilities before building new ones
+- Extend existing components rather than duplicating
+- Use shared utilities and helper functions
+
+**Keep user flows consistent:**
+- Navigation patterns (breadcrumbs, back buttons, redirects)
+- Form validation (error messages, field validation timing)
+- Error handling (toast notifications, error states, fallbacks)
+- Loading states (spinners, skeletons, progress indicators)
+
+**Match existing patterns:**
+- API calling patterns (error handling, response formatting)
+- State management (React Context, server state, local state)
+- Data fetching (server components vs client, caching strategies)
+
+**When inconsistency is discovered, ask whether to:**
+- Conform to the dominant pattern in the codebase, or
+- Refactor older code toward the improved pattern
+
 ## Important Notes
 
 - **TypeScript strict mode**: Both frontend and backend use strict TypeScript

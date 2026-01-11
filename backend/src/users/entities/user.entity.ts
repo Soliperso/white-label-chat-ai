@@ -18,9 +18,6 @@ export class User {
   email: string;
 
   @Column()
-  password: string;
-
-  @Column()
   firstName: string;
 
   @Column()
@@ -43,23 +40,6 @@ export class User {
 
   @Column('uuid')
   organizationId: string;
-
-  // Email verification fields
-  @Column({ default: false })
-  isEmailVerified: boolean;
-
-  @Column({ type: 'varchar', nullable: true })
-  emailVerificationToken: string | null;
-
-  @Column({ type: 'timestamp', nullable: true })
-  emailVerificationTokenExpires: Date | null;
-
-  // Password reset fields
-  @Column({ type: 'varchar', nullable: true })
-  passwordResetToken: string | null;
-
-  @Column({ type: 'timestamp', nullable: true })
-  passwordResetTokenExpires: Date | null;
 
   @Column({ default: true })
   isActive: boolean;

@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { SupabaseService } from '../auth/supabase.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -11,6 +18,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   async findById(id: string): Promise<User> {
@@ -84,5 +92,41 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  /**
+   * Update user password via Supabase authentication
+   * Verifies current password before allowing change
+   */
+  async updatePassword(
+    userId: string,
+    updatePasswordDto: UpdatePasswordDto,
+  ): Promise<void> {
+    const user = await this.findById(userId);
+
+    // Get Supabase admin client
+    const supabase = this.supabaseService.getClient();
+
+    // Verify current password by attempting to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: updatePasswordDto.currentPassword,
+    });
+
+    if (signInError) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // Update password using admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      userId,
+      { password: updatePasswordDto.newPassword },
+    );
+
+    if (updateError) {
+      throw new BadRequestException(
+        `Failed to update password: ${updateError.message}`,
+      );
+    }
   }
 }

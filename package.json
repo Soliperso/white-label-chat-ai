@@ -2,6 +2,7 @@
   "name": "chatforge",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "ChatForge - White-Label AI Chat Widget Platform",
   "workspaces": [
     "frontend",
@@ -17,7 +18,10 @@
     "start:frontend": "npm run start --workspace=frontend",
     "start:backend": "npm run start:prod --workspace=backend",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "fix:auth": "node scripts/fix-auth-rls.js",
+    "verify:auth": "node scripts/verify-auth-fix.js",
+    "check:rls": "node scripts/check-rls-policies.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

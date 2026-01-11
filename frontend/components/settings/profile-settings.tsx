@@ -10,7 +10,12 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
-import { uploadProfilePicture, deleteProfilePicture } from '@/lib/api-client';
+import {
+  updateProfile,
+  updatePassword,
+  uploadProfilePicture,
+  deleteProfilePicture,
+} from '@/lib/api-client';
 
 export function ProfileSettings() {
   const { user, updateUser } = useAuth();
@@ -37,16 +42,30 @@ export function ProfileSettings() {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const updatedUser = await updateProfile(user.id, {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        email: profileData.email,
+      });
 
-    toast.success('Profile updated successfully');
-    setIsLoading(false);
+      updateUser(updatedUser);
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+      console.error('Profile update error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('New passwords do not match');
@@ -60,11 +79,25 @@ export function ProfileSettings() {
 
     setIsChangingPassword(true);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      await updatePassword(user.id, {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
 
-    toast.success('Password changed successfully');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setIsChangingPassword(false);
+      toast.success('Password changed successfully');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      // Handle specific error messages from backend
+      if (error.status === 401) {
+        toast.error('Current password is incorrect');
+      } else {
+        toast.error(error.message || 'Failed to change password');
+      }
+      console.error('Password change error:', error);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleProfilePictureClick = () => {

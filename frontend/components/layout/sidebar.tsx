@@ -49,7 +49,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const { name } = MOCK_ORG.branding;
+  const { companyName } = MOCK_ORG.branding;
 
   // Load logo from localStorage on mount and listen for changes
   useEffect(() => {
@@ -78,13 +78,13 @@ export function Sidebar() {
         {/* Organization Logo */}
         <Link href="/widgets" className="px-6 py-6 border-b border-gray-700 flex flex-col items-center justify-center hover:bg-gray-700/50 transition-colors group">
           {logoUrl ? (
-            <img src={logoUrl} alt={name} className="h-20 w-auto max-w-[200px] object-contain mb-3 rounded-lg" />
+            <img src={logoUrl} alt={companyName} className="h-20 w-auto max-w-[200px] object-contain mb-3 rounded-lg" />
           ) : (
             <div className="h-20 w-20 bg-gray-700 rounded-xl flex items-center justify-center mb-3 group-hover:bg-gray-600 transition-colors">
               <Building2 className="h-12 w-12 text-gray-300" />
             </div>
           )}
-          <span className="text-white font-semibold text-center text-sm">{name}</span>
+          <span className="text-white font-semibold text-center text-sm">{companyName}</span>
         </Link>
 
         {/* Navigation */}
