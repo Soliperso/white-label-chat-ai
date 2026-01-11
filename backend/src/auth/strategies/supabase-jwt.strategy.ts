@@ -1,9 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { User } from '../../users/entities/user.entity';
+import { SupabaseService } from '../supabase.service';
 
 interface JwtPayload {
   sub: string;
@@ -14,16 +13,25 @@ interface JwtPayload {
   iat?: number;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  role: string;
+  organizationId: string;
+  isActive: boolean;
+  organization?: any;
+}
+
 @Injectable()
 export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jwt') {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly supabaseService: SupabaseService,
+    private readonly configService: ConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.SUPABASE_JWT_SECRET,
+      secretOrKey: configService.get<string>('SUPABASE_JWT_SECRET'),
       audience: 'authenticated',
     });
   }
@@ -35,13 +43,16 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
       throw new UnauthorizedException('Invalid token: missing user ID');
     }
 
-    // Fetch user from database with organization relationship
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['organization'],
-    });
+    const supabase = this.supabaseService.getClient();
 
-    if (!user) {
+    // Fetch user from Supabase database with organization relationship
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*, organization:organizations(*)')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
       throw new UnauthorizedException('User not found');
     }
 
@@ -50,6 +61,6 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
     }
 
     // Return user object that will be attached to request.user
-    return user;
+    return user as User;
   }
 }

@@ -4,48 +4,72 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { SupabaseService } from '../auth/supabase.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+export interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  organizationId: string;
+  isActive: boolean;
+  profilePictureUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    private readonly supabaseService: SupabaseService,
-  ) {}
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   async findById(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
+    const supabase = this.supabaseService.getClient();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !user) {
       throw new NotFoundException('User not found');
     }
-    return user;
+    return user as User;
   }
 
   async updateProfile(
     userId: string,
     updateProfileDto: UpdateProfileDto,
   ): Promise<User> {
-    const user = await this.findById(userId);
+    const supabase = this.supabaseService.getClient();
 
-    if (updateProfileDto.firstName) {
-      user.firstName = updateProfileDto.firstName;
+    const updateData: any = {};
+    if (updateProfileDto.firstName !== undefined) {
+      updateData.firstName = updateProfileDto.firstName;
     }
-    if (updateProfileDto.lastName) {
-      user.lastName = updateProfileDto.lastName;
+    if (updateProfileDto.lastName !== undefined) {
+      updateData.lastName = updateProfileDto.lastName;
     }
-    if (updateProfileDto.email) {
-      user.email = updateProfileDto.email;
+    if (updateProfileDto.email !== undefined) {
+      updateData.email = updateProfileDto.email;
     }
 
-    return this.userRepository.save(user);
+    const { data: user, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error || !user) {
+      throw new BadRequestException('Failed to update profile');
+    }
+
+    return user as User;
   }
 
   async uploadProfilePicture(
@@ -53,6 +77,7 @@ export class UsersService {
     file: Express.Multer.File,
   ): Promise<User> {
     const user = await this.findById(userId);
+    const supabase = this.supabaseService.getClient();
 
     const uploadDir = path.join(process.cwd(), 'uploads', 'profile-pictures');
     await fs.mkdir(uploadDir, { recursive: true });
@@ -72,12 +97,25 @@ export class UsersService {
       }
     }
 
-    user.profilePictureUrl = `/uploads/profile-pictures/${filename}`;
-    return this.userRepository.save(user);
+    const profilePictureUrl = `/uploads/profile-pictures/${filename}`;
+
+    const { data: updatedUser, error } = await supabase
+      .from('users')
+      .update({ profilePictureUrl })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error || !updatedUser) {
+      throw new BadRequestException('Failed to update profile picture');
+    }
+
+    return updatedUser as User;
   }
 
   async deleteProfilePicture(userId: string): Promise<User> {
     const user = await this.findById(userId);
+    const supabase = this.supabaseService.getClient();
 
     if (user.profilePictureUrl) {
       const filePath = path.join(process.cwd(), user.profilePictureUrl);
@@ -87,8 +125,18 @@ export class UsersService {
         console.error('Failed to delete profile picture:', error);
       }
 
-      user.profilePictureUrl = null;
-      return this.userRepository.save(user);
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update({ profilePictureUrl: null })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error || !updatedUser) {
+        throw new BadRequestException('Failed to delete profile picture');
+      }
+
+      return updatedUser as User;
     }
 
     return user;

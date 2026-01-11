@@ -1,4 +1,4 @@
-import { User } from '../entities/user.entity';
+import { User } from '../users.service';
 
 /**
  * DTO for user profile API responses
@@ -7,17 +7,17 @@ import { User } from '../entities/user.entity';
 export class ProfileResponseDto {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  role: 'admin' | 'manager' | 'viewer';
-  profilePictureUrl: string | null;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  profilePictureUrl?: string | null;
   organizationId: string;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 
   /**
-   * Factory method to create ProfileResponseDto from User entity
+   * Factory method to create ProfileResponseDto from User data
    */
   static fromEntity(user: User): ProfileResponseDto {
     const dto = new ProfileResponseDto();

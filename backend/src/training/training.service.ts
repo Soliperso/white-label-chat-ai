@@ -1,32 +1,58 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { TrainingSource } from './entities/training-source.entity';
-import { TrainingJob } from './entities/training-job.entity';
 import { CreateTrainingSourceDto } from './dto/create-training-source.dto';
+import { SupabaseService } from '../auth/supabase.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+export interface TrainingSource {
+  id: string;
+  organizationId: string;
+  widgetId: string;
+  sourceType: 'url' | 'file' | 'qna';
+  metadata: any;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  totalChunks?: number;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrainingJob {
+  id: string;
+  organizationId: string;
+  widgetId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  totalItems: number;
+  processedItems: number;
+  startedAt: number;
+  completedAt?: number;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 @Injectable()
 export class TrainingService {
-  constructor(
-    @InjectRepository(TrainingSource)
-    private trainingSourceRepository: Repository<TrainingSource>,
-    @InjectRepository(TrainingJob)
-    private trainingJobRepository: Repository<TrainingJob>,
-  ) {}
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   async findAllByWidget(
     widgetId: string,
     organizationId: string,
   ): Promise<TrainingSource[]> {
-    return this.trainingSourceRepository.find({
-      where: {
-        widgetId,
-        organizationId,
-      },
-      order: { createdAt: 'DESC' },
-    });
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('training_sources')
+      .select('*')
+      .eq('widgetId', widgetId)
+      .eq('organizationId', organizationId)
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch training sources: ${error.message}`);
+    }
+
+    return (data || []) as TrainingSource[];
   }
 
   async createUrlSource(
@@ -34,23 +60,31 @@ export class TrainingService {
     organizationId: string,
     dto: CreateTrainingSourceDto,
   ): Promise<TrainingSource> {
-    const source = this.trainingSourceRepository.create({
-      organizationId,
-      widgetId,
-      sourceType: 'url',
-      metadata: {
-        url: dto.url,
-        crawlDepth: dto.crawlDepth || 1,
-      },
-      status: 'pending',
-    });
+    const supabase = this.supabaseService.getClient();
 
-    const saved = await this.trainingSourceRepository.save(source);
+    const { data: source, error } = await supabase
+      .from('training_sources')
+      .insert({
+        organizationId,
+        widgetId,
+        sourceType: 'url',
+        metadata: {
+          url: dto.url,
+          crawlDepth: dto.crawlDepth || 1,
+        },
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (error || !source) {
+      throw new Error(`Failed to create URL source: ${error?.message}`);
+    }
 
     // Mock processing - simulate crawling
-    this.mockProcessUrlSource(saved.id);
+    this.mockProcessUrlSource(source.id);
 
-    return saved;
+    return source as TrainingSource;
   }
 
   async createFileSource(
@@ -58,6 +92,8 @@ export class TrainingService {
     organizationId: string,
     file: Express.Multer.File,
   ): Promise<TrainingSource> {
+    const supabase = this.supabaseService.getClient();
+
     // Save file to disk
     const uploadDir = path.join(
       process.cwd(),
@@ -73,25 +109,31 @@ export class TrainingService {
 
     await fs.writeFile(filePath, file.buffer);
 
-    const source = this.trainingSourceRepository.create({
-      organizationId,
-      widgetId,
-      sourceType: 'file',
-      metadata: {
-        fileName: file.originalname,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-        storageUrl: filePath,
-      },
-      status: 'pending',
-    });
+    const { data: source, error } = await supabase
+      .from('training_sources')
+      .insert({
+        organizationId,
+        widgetId,
+        sourceType: 'file',
+        metadata: {
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          storageUrl: filePath,
+        },
+        status: 'pending',
+      })
+      .select()
+      .single();
 
-    const saved = await this.trainingSourceRepository.save(source);
+    if (error || !source) {
+      throw new Error(`Failed to create file source: ${error?.message}`);
+    }
 
     // Mock processing
-    this.mockProcessFileSource(saved.id, file.size);
+    this.mockProcessFileSource(source.id, file.size);
 
-    return saved;
+    return source as TrainingSource;
   }
 
   async createQASource(
@@ -99,33 +141,45 @@ export class TrainingService {
     organizationId: string,
     dto: CreateTrainingSourceDto,
   ): Promise<TrainingSource> {
-    const source = this.trainingSourceRepository.create({
-      organizationId,
-      widgetId,
-      sourceType: 'qna',
-      metadata: {
-        question: dto.question,
-        answer: dto.answer,
-      },
-      status: 'completed', // Q&A pairs are immediately ready
-      totalChunks: 1,
-    });
+    const supabase = this.supabaseService.getClient();
 
-    return this.trainingSourceRepository.save(source);
+    const { data: source, error } = await supabase
+      .from('training_sources')
+      .insert({
+        organizationId,
+        widgetId,
+        sourceType: 'qna',
+        metadata: {
+          question: dto.question,
+          answer: dto.answer,
+        },
+        status: 'completed',
+        totalChunks: 1,
+      })
+      .select()
+      .single();
+
+    if (error || !source) {
+      throw new Error(`Failed to create Q&A source: ${error?.message}`);
+    }
+
+    return source as TrainingSource;
   }
 
   async deleteSource(
     sourceId: string,
     organizationId: string,
   ): Promise<void> {
-    const source = await this.trainingSourceRepository.findOne({
-      where: {
-        id: sourceId,
-        organizationId,
-      },
-    });
+    const supabase = this.supabaseService.getClient();
 
-    if (!source) {
+    const { data: source, error: fetchError } = await supabase
+      .from('training_sources')
+      .select('*')
+      .eq('id', sourceId)
+      .eq('organizationId', organizationId)
+      .single();
+
+    if (fetchError || !source) {
       throw new NotFoundException('Training source not found');
     }
 
@@ -138,7 +192,14 @@ export class TrainingService {
       }
     }
 
-    await this.trainingSourceRepository.remove(source);
+    const { error: deleteError } = await supabase
+      .from('training_sources')
+      .delete()
+      .eq('id', sourceId);
+
+    if (deleteError) {
+      throw new Error(`Failed to delete source: ${deleteError.message}`);
+    }
   }
 
   async triggerTraining(
@@ -146,132 +207,142 @@ export class TrainingService {
     organizationId: string,
   ): Promise<TrainingJob> {
     const sources = await this.findAllByWidget(widgetId, organizationId);
+    const supabase = this.supabaseService.getClient();
 
-    const job = this.trainingJobRepository.create({
-      organizationId,
-      widgetId,
-      status: 'queued',
-      progress: 0,
-      totalItems: sources.length,
-      processedItems: 0,
-      startedAt: Date.now(),
-    });
+    const { data: job, error } = await supabase
+      .from('training_jobs')
+      .insert({
+        organizationId,
+        widgetId,
+        status: 'queued',
+        progress: 0,
+        totalItems: sources.length,
+        processedItems: 0,
+        startedAt: Date.now(),
+      })
+      .select()
+      .single();
 
-    const saved = await this.trainingJobRepository.save(job);
+    if (error || !job) {
+      throw new Error(`Failed to create training job: ${error?.message}`);
+    }
 
     // Mock training process
-    this.mockTrainingJob(saved.id, sources.length);
+    this.mockTrainingJob(job.id, sources.length);
 
-    return saved;
+    return job as TrainingJob;
   }
 
   async getTrainingStatus(
     widgetId: string,
     organizationId: string,
   ): Promise<TrainingJob | null> {
-    return this.trainingJobRepository.findOne({
-      where: {
-        widgetId,
-        organizationId,
-      },
-      order: { createdAt: 'DESC' },
-    });
+    const supabase = this.supabaseService.getClient();
+
+    const { data, error } = await supabase
+      .from('training_jobs')
+      .select('*')
+      .eq('widgetId', widgetId)
+      .eq('organizationId', organizationId)
+      .order('createdAt', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      return null;
+    }
+
+    return data as TrainingJob;
   }
 
   // Mock processing methods
 
   private async mockProcessUrlSource(sourceId: string) {
+    const supabase = this.supabaseService.getClient();
+
     // Simulate 2-3 second processing delay
     setTimeout(async () => {
-      const source = await this.trainingSourceRepository.findOne({
-        where: { id: sourceId },
-      });
+      await supabase
+        .from('training_sources')
+        .update({ status: 'processing' })
+        .eq('id', sourceId);
 
-      if (source) {
-        source.status = 'processing';
-        await this.trainingSourceRepository.save(source);
-
-        // Simulate crawling completion
-        setTimeout(async () => {
-          const updatedSource = await this.trainingSourceRepository.findOne({
-            where: { id: sourceId },
-          });
-
-          if (updatedSource) {
-            const mockChunks = Math.floor(Math.random() * 6) + 5; // 5-10 chunks
-            updatedSource.status = 'completed';
-            updatedSource.totalChunks = mockChunks;
-            await this.trainingSourceRepository.save(updatedSource);
-          }
-        }, 2000);
-      }
+      // Simulate crawling completion
+      setTimeout(async () => {
+        const mockChunks = Math.floor(Math.random() * 6) + 5; // 5-10 chunks
+        await supabase
+          .from('training_sources')
+          .update({ status: 'completed', totalChunks: mockChunks })
+          .eq('id', sourceId);
+      }, 2000);
     }, 1000);
   }
 
   private async mockProcessFileSource(sourceId: string, fileSize: number) {
+    const supabase = this.supabaseService.getClient();
+
     setTimeout(async () => {
-      const source = await this.trainingSourceRepository.findOne({
-        where: { id: sourceId },
-      });
+      await supabase
+        .from('training_sources')
+        .update({ status: 'processing' })
+        .eq('id', sourceId);
 
-      if (source) {
-        source.status = 'processing';
-        await this.trainingSourceRepository.save(source);
-
-        setTimeout(async () => {
-          const updatedSource = await this.trainingSourceRepository.findOne({
-            where: { id: sourceId },
-          });
-
-          if (updatedSource) {
-            // Mock: 1 chunk per 10KB
-            const mockChunks = Math.max(1, Math.floor(fileSize / 10240));
-            updatedSource.status = 'completed';
-            updatedSource.totalChunks = mockChunks;
-            await this.trainingSourceRepository.save(updatedSource);
-          }
-        }, 3000);
-      }
+      setTimeout(async () => {
+        // Mock: 1 chunk per 10KB
+        const mockChunks = Math.max(1, Math.floor(fileSize / 10240));
+        await supabase
+          .from('training_sources')
+          .update({ status: 'completed', totalChunks: mockChunks })
+          .eq('id', sourceId);
+      }, 3000);
     }, 1000);
   }
 
   private async mockTrainingJob(jobId: string, totalItems: number) {
+    const supabase = this.supabaseService.getClient();
+
     setTimeout(async () => {
-      const job = await this.trainingJobRepository.findOne({
-        where: { id: jobId },
-      });
+      await supabase
+        .from('training_jobs')
+        .update({ status: 'processing' })
+        .eq('id', jobId);
 
-      if (job) {
-        job.status = 'processing';
-        await this.trainingJobRepository.save(job);
+      // Simulate progress updates
+      const progressInterval = setInterval(async () => {
+        const { data: currentJob } = await supabase
+          .from('training_jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
 
-        // Simulate progress updates
-        const progressInterval = setInterval(async () => {
-          const currentJob = await this.trainingJobRepository.findOne({
-            where: { id: jobId },
-          });
+        if (currentJob && currentJob.status === 'processing') {
+          const processedItems = Math.min(
+            (currentJob.processedItems || 0) + 1,
+            totalItems,
+          );
+          const progress = Math.round((processedItems / totalItems) * 100);
 
-          if (currentJob && currentJob.status === 'processing') {
-            currentJob.processedItems = Math.min(
-              currentJob.processedItems + 1,
-              totalItems,
-            );
-            currentJob.progress = Math.round(
-              (currentJob.processedItems / totalItems) * 100,
-            );
-
-            if (currentJob.processedItems >= totalItems) {
-              currentJob.status = 'completed';
-              currentJob.completedAt = Date.now();
-              clearInterval(progressInterval);
-            }
-
-            await this.trainingJobRepository.save(currentJob);
-          } else {
+          if (processedItems >= totalItems) {
+            await supabase
+              .from('training_jobs')
+              .update({
+                processedItems,
+                progress,
+                status: 'completed',
+                completedAt: Date.now(),
+              })
+              .eq('id', jobId);
             clearInterval(progressInterval);
+          } else {
+            await supabase
+              .from('training_jobs')
+              .update({ processedItems, progress })
+              .eq('id', jobId);
           }
-        }, 1000); // Update every second
-      }
+        } else {
+          clearInterval(progressInterval);
+        }
+      }, 1000); // Update every second
     }, 500);
   }
 }
