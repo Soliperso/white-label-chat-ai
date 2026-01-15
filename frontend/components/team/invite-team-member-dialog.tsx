@@ -31,7 +31,8 @@ interface InviteTeamMemberDialogProps {
 
 interface InviteFormData {
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: 'admin' | 'manager' | 'viewer';
 }
 
@@ -57,7 +58,8 @@ export function InviteTeamMemberDialog({
     try {
       await inviteMember({
         email: data.email,
-        name: data.name,
+        firstName: data.firstName,
+        lastName: data.lastName,
         role,
       });
       toast.success(`Invitation sent to ${data.email}`);
@@ -104,23 +106,43 @@ export function InviteTeamMemberDialog({
             )}
           </div>
 
-          {/* Name */}
+          {/* First Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="firstName">First Name</Label>
             <Input
-              id="name"
+              id="firstName"
               type="text"
-              placeholder="John Doe"
-              {...register('name', {
-                required: 'Name is required',
+              placeholder="John"
+              {...register('firstName', {
+                required: 'First name is required',
                 minLength: {
                   value: 2,
-                  message: 'Name must be at least 2 characters',
+                  message: 'First name must be at least 2 characters',
                 },
               })}
             />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
+            {errors.firstName && (
+              <p className="text-sm text-destructive">{errors.firstName.message}</p>
+            )}
+          </div>
+
+          {/* Last Name */}
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Last Name</Label>
+            <Input
+              id="lastName"
+              type="text"
+              placeholder="Doe"
+              {...register('lastName', {
+                required: 'Last name is required',
+                minLength: {
+                  value: 2,
+                  message: 'Last name must be at least 2 characters',
+                },
+              })}
+            />
+            {errors.lastName && (
+              <p className="text-sm text-destructive">{errors.lastName.message}</p>
             )}
           </div>
 

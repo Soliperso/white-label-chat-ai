@@ -37,30 +37,33 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
   }
 
   async validate(payload: JwtPayload): Promise<User> {
-    const { sub: userId, email } = payload;
+    const { sub: userId } = payload;
 
     if (!userId) {
       throw new UnauthorizedException('Invalid token: missing user ID');
     }
 
+    // Query the database for the actual user profile
     const supabase = this.supabaseService.getClient();
-
-    // Fetch user from Supabase database with organization relationship
     const { data: user, error } = await supabase
       .from('users')
-      .select('*, organization:organizations(*)')
+      .select('id, email, role, organization_id, is_active')
       .eq('id', userId)
       .single();
 
     if (error || !user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(
+        `User profile not found in database. Please ensure your account is properly set up. Error: ${error?.message || 'User not found'}`
+      );
     }
 
-    if (!user.isActive) {
-      throw new UnauthorizedException('User account is inactive');
-    }
-
-    // Return user object that will be attached to request.user
-    return user as User;
+    // Return real user data from database
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organization_id,
+      isActive: user.is_active,
+    };
   }
 }

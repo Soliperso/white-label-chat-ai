@@ -2,7 +2,8 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: 'admin' | 'manager' | 'viewer';
   organizationId: string;
   createdAt: string;
@@ -11,7 +12,8 @@ export interface User {
 export interface TeamMember {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: 'admin' | 'manager' | 'viewer';
   status: 'active' | 'pending' | 'inactive';
   organizationId: string;
@@ -21,7 +23,8 @@ export interface TeamMember {
 
 export interface InviteTeamMemberDto {
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: 'admin' | 'manager' | 'viewer';
 }
 
@@ -220,7 +223,8 @@ export interface WidgetResponse {
 export const MOCK_USER: User = {
   id: 'user-1',
   email: 'demo@chatforge.com',
-  name: 'Demo User',
+  firstName: 'Demo',
+  lastName: 'User',
   role: 'admin',
   organizationId: 'org-1',
   createdAt: new Date().toISOString(),

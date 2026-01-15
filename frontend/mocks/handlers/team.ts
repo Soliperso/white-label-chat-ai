@@ -28,7 +28,8 @@ export const teamHandlers = [
     const newMember: TeamMember = {
       id: generateId('member'),
       email: dto.email,
-      name: dto.name,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
       role: dto.role,
       status: 'pending',
       organizationId: 'org-1',

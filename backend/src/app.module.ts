@@ -7,6 +7,7 @@ import { TrainingModule } from './training/training.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { WidgetsModule } from './widgets/widgets.module';
 import { SupabaseJwtGuard } from './auth/guards/supabase-jwt.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -20,6 +21,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     UsersModule,
     AuthModule,
     OrganizationsModule,
+    WidgetsModule,
   ],
   controllers: [AppController],
   providers: [

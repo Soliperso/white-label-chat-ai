@@ -200,7 +200,7 @@ export function TeamMembersTable({ members, isLoading }: TeamMembersTableProps) 
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {getRoleIcon(member.role)}
-                    <span className="font-medium">{member.name}</span>
+                    <span className="font-medium">{member.firstName} {member.lastName}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{member.email}</TableCell>
@@ -282,7 +282,7 @@ export function TeamMembersTable({ members, isLoading }: TeamMembersTableProps) 
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove {memberToDelete?.name} from your organization. They will lose
+              This will remove {memberToDelete?.firstName} {memberToDelete?.lastName} from your organization. They will lose
               access to all widgets and data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

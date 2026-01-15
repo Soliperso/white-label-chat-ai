@@ -144,7 +144,8 @@ export function initializeDb() {
     {
       id: 'member-1',
       email: 'admin@chatforge.com',
-      name: 'Admin User',
+      firstName: 'Admin',
+      lastName: 'User',
       role: 'admin',
       status: 'active',
       organizationId: 'org-1',
@@ -154,7 +155,8 @@ export function initializeDb() {
     {
       id: 'member-2',
       email: 'manager@chatforge.com',
-      name: 'Sarah Johnson',
+      firstName: 'Sarah',
+      lastName: 'Johnson',
       role: 'manager',
       status: 'active',
       organizationId: 'org-1',
@@ -164,7 +166,8 @@ export function initializeDb() {
     {
       id: 'member-3',
       email: 'viewer@chatforge.com',
-      name: 'Mike Chen',
+      firstName: 'Mike',
+      lastName: 'Chen',
       role: 'viewer',
       status: 'active',
       organizationId: 'org-1',
@@ -174,7 +177,8 @@ export function initializeDb() {
     {
       id: 'member-4',
       email: 'pending@chatforge.com',
-      name: 'Jane Smith',
+      firstName: 'Jane',
+      lastName: 'Smith',
       role: 'viewer',
       status: 'pending',
       organizationId: 'org-1',

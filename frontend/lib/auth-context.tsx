@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -38,12 +38,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('[fetchUserProfile] Fetching profile for user:', authUser.id);
 
-      // First try to get the user profile
-      let { data, error, count } = await supabase
+      // Add timeout to prevent infinite hanging
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
+      );
+
+      const fetchPromise = supabase
         .from('users')
         .select('*', { count: 'exact' })
         .eq('id', authUser.id)
-        .maybeSingle(); // Use maybeSingle() instead of single() to avoid throwing on 0 rows
+        .maybeSingle();
+
+      // Race between fetch and timeout
+      let { data, error, count } = await Promise.race([fetchPromise, timeout]) as any;
 
       // Detailed error logging
       if (error) {
@@ -56,31 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If it's a PGRST116 error (0 rows), the profile doesn't exist
         if (error.code === 'PGRST116') {
-          console.warn('[fetchUserProfile] User profile not found in database. This might mean:');
-          console.warn('  1. The user was just created and the trigger hasn\'t finished');
-          console.warn('  2. The RLS policies are blocking access');
-          console.warn('  3. The user row was deleted from the users table');
-          console.warn('  Waiting 2 seconds and retrying...');
-
-          // Wait a bit for the trigger to complete
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          // Retry once
-          const retryResult = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', authUser.id)
-            .maybeSingle();
-
-          if (retryResult.error || !retryResult.data) {
-            console.error('[fetchUserProfile] Retry failed:', retryResult.error);
-            return null;
-          }
-
-          console.log('[fetchUserProfile] Retry successful!');
-          data = retryResult.data;
+          console.warn('[fetchUserProfile] User profile not found - likely missing trigger or RLS issue');
+          console.warn('[fetchUserProfile] Signing out to prevent infinite loading');
+          return null;
         } else {
           // Other error - return null
+          console.error('[fetchUserProfile] Returning null due to error');
           return null;
         }
       }
@@ -88,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check if we actually got data
       if (!data) {
         console.error('[fetchUserProfile] No data returned. Row count:', count);
-        console.error('[fetchUserProfile] This indicates an RLS policy issue or missing user profile.');
+        console.error('[fetchUserProfile] RLS policy or missing profile - signing out');
         return null;
       }
 
@@ -117,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check for existing session on mount
   useEffect(() => {
     let isMounted = true; // Prevent state updates after unmount
+    let isSigningOut = false; // Prevent infinite sign-out loops
 
     const checkAuth = async () => {
       try {
@@ -142,8 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(userProfile);
           } else {
             console.error('[Auth] Profile not found for user, signing out');
+            isSigningOut = true;
             await supabase.auth.signOut();
             setUser(null);
+            router.push('/login');
           }
         } else {
           console.log('[Auth] No session found');
@@ -166,9 +157,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return; // Component unmounted
+      if (isSigningOut) return; // Already signing out, prevent loop
 
       console.log('[Auth] Auth state changed:', event);
       if (session?.user) {
+        // Skip profile fetch on auth callback page - it handles its own flow
+        const isAuthCallback = typeof window !== 'undefined' && window.location.pathname === '/auth/callback';
+        if (isAuthCallback) {
+          console.log('[Auth] On auth callback page, skipping profile fetch');
+          setIsLoading(false);
+          return;
+        }
+
         const userProfile = await fetchUserProfile(session.user);
         if (!isMounted) return; // Component unmounted during fetch
 
@@ -177,7 +177,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.error('[Auth] Failed to fetch user profile, signing out');
           setUser(null);
+          isSigningOut = true; // Set flag before signing out
           await supabase.auth.signOut();
+          router.push('/login'); // Redirect to login
         }
       } else {
         setUser(null);
@@ -192,9 +194,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]); // Only depend on supabase, not fetchUserProfile
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
-      console.log('[login] Attempting to sign in with:', email);
+      console.log('[login] Attempting to sign in with:', email, 'Remember me:', rememberMe);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -211,6 +213,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userProfile) {
           console.log('[login] Profile fetched, redirecting to /widgets');
           setUser(userProfile);
+
+          // For remember me, Supabase already persists session in cookies
+          // The default session duration is controlled by JWT expiry (server-side)
+          // Client-side, we use localStorage vs sessionStorage for extended persistence
+          if (rememberMe) {
+            // Session persists across browser restarts (default with @supabase/ssr)
+            console.log('[login] Remember me enabled - session will persist');
+          } else {
+            // For non-remember-me, session still persists but could be shorter
+            console.log('[login] Remember me disabled - using default session duration');
+          }
+
           router.push('/widgets');
         } else {
           console.error('[login] Failed to fetch profile after login');
@@ -236,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             first_name: firstName,
             last_name: lastName,

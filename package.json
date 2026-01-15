@@ -21,12 +21,18 @@
     "test:e2e:headed": "playwright test --headed",
     "fix:auth": "node scripts/fix-auth-rls.js",
     "fix:recursive-rls": "node scripts/fix-recursive-rls.js",
+    "fix:user-role": "node scripts/apply-default-user-role.js",
+    "fix:profile": "node scripts/fix-profile-loading.js",
     "verify:auth": "node scripts/verify-auth-fix.js",
-    "check:rls": "node scripts/check-rls-policies.js"
+    "check:rls": "node scripts/check-rls-policies.js",
+    "diagnose:profile": "node scripts/diagnose-profile-issue.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "concurrently": "^9.2.1",
     "puppeteer": "^24.34.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }
