@@ -16,10 +16,11 @@ interface JwtPayload {
 export interface User {
   id: string;
   email: string;
-  role: string;
-  organizationId: string;
+  role: 'admin' | 'manager' | 'viewer' | 'super_admin';
+  organizationId: string | null; // null for super_admin users
   isActive: boolean;
   organization?: any;
+  superAdminMetadata?: Record<string, any>;
 }
 
 @Injectable()
@@ -47,7 +48,7 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
     const supabase = this.supabaseService.getClient();
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, email, role, organization_id, is_active')
+      .select('id, email, role, organization_id, is_active, super_admin_metadata')
       .eq('id', userId)
       .single();
 
@@ -57,13 +58,22 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
       );
     }
 
+    // For super_admin users, organization_id can be null
+    // For regular users, organization_id must exist
+    if (user.role !== 'super_admin' && !user.organization_id) {
+      throw new UnauthorizedException(
+        'User account is not properly configured. Please contact support.'
+      );
+    }
+
     // Return real user data from database
     return {
       id: user.id,
       email: user.email,
       role: user.role,
-      organizationId: user.organization_id,
+      organizationId: user.organization_id || null,
       isActive: user.is_active,
+      superAdminMetadata: user.super_admin_metadata || {},
     };
   }
 }
