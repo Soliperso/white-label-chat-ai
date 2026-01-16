@@ -8,8 +8,10 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { WidgetsModule } from './widgets/widgets.module';
+import { AdminModule } from './admin/admin.module';
 import { SupabaseJwtGuard } from './auth/guards/supabase-jwt.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { SuperAdminGuard } from './auth/guards/super-admin.guard';
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AuthModule,
     OrganizationsModule,
     WidgetsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
@@ -33,6 +36,10 @@ import { RolesGuard } from './auth/guards/roles.guard';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SuperAdminGuard,
     },
   ],
 })
