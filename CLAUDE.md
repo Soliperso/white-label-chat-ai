@@ -49,9 +49,9 @@ When implementing the database schema, keep in mind:
 
 1. **Multi-tenancy**: Use `organizationId` foreign keys on all tenant-scoped tables
 2. **Hierarchy**: Organizations (agencies) → Clients → Widgets → Conversations
-3. **RBAC**: Three roles planned: Admin, Manager, Viewer (see PRD section 7.5)
+3. **RBAC**: Four roles: Super Admin (platform owner), Admin, Manager, Viewer (see PRD section 7.5)
 4. **Soft deletes**: Consider for organizations, widgets, and user data (GDPR compliance)
-5. **Data isolation**: Critical for security - tenant data must never leak across organizations
+5. **Data isolation**: Critical for security - tenant data must never leak across organizations (except for super admin)
 
 ### AI Integration (Future)
 
@@ -225,7 +225,7 @@ Global ValidationPipe automatically validates all DTOs.
 
 **Not Yet Implemented:**
 - Authentication system (JWT planned)
-- User management and RBAC
+- User management and RBAC (including super admin role)
 - Multi-tenant database schema
 - Organization/client management
 - Widget creation and configuration
@@ -233,6 +233,7 @@ Global ValidationPipe automatically validates all DTOs.
 - Chat widget (embeddable JS bundle)
 - Analytics and chat history
 - Stripe billing integration
+- Super admin panel and platform-level features
 
 **Next Steps (see PRD section 5.1 for MVP scope):**
 1. Authentication & authorization (JWT + RBAC)
@@ -261,8 +262,9 @@ For Supabase authentication integration:
 - Public endpoints: Use `@Public()` decorator to bypass auth
 - Access user: `@CurrentUser()` decorator in controllers
 - Check roles: Use `@Roles()` decorator with `RolesGuard`
-- Available roles: `admin`, `manager`, `viewer`
+- Available roles: `super_admin`, `admin`, `manager`, `viewer`
 - Token in headers: `Authorization: Bearer <supabase-jwt>`
+- Super admin: Platform owner role with access to all organizations and tenants
 
 ### #api-endpoint
 When creating NestJS API endpoints:
@@ -299,10 +301,11 @@ For multi-tenant data isolation:
 - **CRITICAL**: Always filter queries by `organizationId` from `@CurrentUser()`
 - Validate user has access to requested organization
 - Use scoped repositories or query builders
-- Never expose cross-tenant data
+- Never expose cross-tenant data (except for super admin)
 - Example: `where: { organizationId: user.organizationId }`
-- For admin operations, verify role before cross-org access
-- Add database-level RLS policies in Supabase for extra security
+- **Super admin exception**: If `user.role === 'super_admin'`, skip organization filtering to allow platform-wide access
+- For regular admin operations, verify role before cross-org access
+- Add database-level RLS policies in Supabase for extra security (with super admin bypass)
 
 ### #protected-route
 For Next.js protected routes (with Supabase):
@@ -370,9 +373,38 @@ For NestJS guards (auth/permissions):
 - `RolesGuard`: Enforces role-based access control
 - `@Public()`: Bypass authentication (for public endpoints)
 - `@Roles('admin', 'manager')`: Require specific roles
+- `@Roles('super_admin')`: Restrict to platform owner only
+- Super admin automatically passes all role checks (has all permissions)
 - Guards extract user from JWT and attach to `request.user`
 - Guards run before route handlers
 - Return boolean or throw exceptions
+
+### #super-admin
+For implementing super admin (platform owner) functionality:
+- **Role**: `super_admin` - highest privilege level, platform owner only
+- **Access**: Bypass all organization/tenant restrictions
+- **Use cases**: Support, debugging, platform analytics, impersonation, global settings
+- **Implementation patterns**:
+  - In services: Check `if (user.role === 'super_admin')` before filtering by `organizationId`
+  - In RolesGuard: Super admin should pass all role checks automatically
+  - In queries: Skip tenant filtering when super admin
+  - Example: `const where = user.role === 'super_admin' ? {} : { organizationId: user.organizationId }`
+- **Security considerations**:
+  - Store super admin flag in Supabase user metadata or custom claims
+  - Log all super admin actions for audit trail
+  - Consider requiring MFA for super admin accounts
+  - Never expose super admin status to frontend (check on backend only)
+- **API endpoints for super admin**:
+  - `/admin/*` routes - platform-level admin panel
+  - List all organizations: `GET /admin/organizations`
+  - Impersonate user/org: `POST /admin/impersonate`
+  - Platform analytics: `GET /admin/analytics`
+  - Global settings: `GET/PUT /admin/settings`
+- **Frontend considerations**:
+  - Hide super admin features from regular users
+  - Show organization switcher in UI for super admin
+  - Display banner when impersonating
+  - Provide "View as Customer" functionality
 
 ### #widget-config
 For widget configuration:
