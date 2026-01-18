@@ -1,7 +1,7 @@
 # Multi-stage build for Next.js frontend
 
 # Stage 1: Dependencies
-FROM node:22-alpine AS deps
+FROM node:25-alpine AS deps
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY package*.json ./
 RUN npm ci
 
 # Stage 2: Build
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Stage 3: Production
-FROM node:22-alpine AS production
+FROM node:25-alpine AS production
 
 # Add labels for metadata
 LABEL maintainer="ChatForge Team"
